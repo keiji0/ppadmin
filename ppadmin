@@ -28,7 +28,7 @@ $cmd = {
     command => sub {
       my $opt = cmdparse 'l';
       if ($opt->{l}) {
-        print sprintf('%s: %s', $_->{key}, $_->{desc}), "\n" for @$data;
+        print sprintf('%s: %s', $_->{key}, $_->{label}), "\n" for @$data;
       } else {
         print $_->{key}, "\n" for @$data;
       }
@@ -50,9 +50,7 @@ $cmd = {
       unless ($item) {
         for my $i (@$data) {
           if ($i->{key} eq $key) {
-            for (sort { $a cmp $b } keys %$i) {
-              print sprintf('%s: %s', $_, $i->{$_}), "\n";
-            }
+            print sprintf('%s: %s', $_, $i->{$_}), "\n" for sort { $a cmp $b } keys %$i;
             exit 1;
           }
         }
@@ -60,6 +58,7 @@ $cmd = {
       }
       for (@$data) {
         if ($_->{key} eq $key) {
+          $_->{$item} or err sprintf '"%s"には"%s"が存在しません', $key, $item;
           print $_->{$item};
           exit 0;
         }

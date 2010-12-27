@@ -1,0 +1,3 @@
+# Setup
+
+% echo 'export PPADMIN_PATH=[password file]' > ~/.zshenv

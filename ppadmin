@@ -1,0 +1,91 @@
+#!/usr/bin/env perl
+
+use utf8;
+use strict;
+use warnings;
+
+binmode *STDOUT, ":utf8";
+binmode *STDIN, ":utf8";
+binmode *STDERR, ":utf8";
+
+my $data = [];
+{ my $p = $ENV{PPADMIN_PATH};
+  $data = do $p or die $@ if -e $p; }
+
+sub err { print @_; exit 1 }
+sub cmdparse {
+  use Getopt::Long;
+  my $o = {};
+  GetOptions $o, @_;
+  $o;
+}
+
+my $cmd = {};
+$cmd = {
+  ls => {
+    usage => '',
+    desc => '登録リストを出力する',
+    command => sub {
+      my $opt = cmdparse 'l';
+      if ($opt->{l}) {
+        print sprintf('%s: %s', $_->{key}, $_->{desc}), "\n" for @$data;
+      } else {
+        print $_->{key}, "\n" for @$data;
+      }
+    }
+  },
+  edit => {
+    usage => '',
+    desc => 'パスワードファイルを編集する',
+    command => sub {
+      system '$EDITOR $PPADMIN_PATH';
+    }
+  },
+  cat => {
+    usage => 'key [item]',
+    desc => 'データベースから値を獲得する',
+    command => sub {
+      my ($key, $item) = @ARGV;
+      $key or err 'keyを指定して下さい';
+      unless ($item) {
+        for my $i (@$data) {
+          if ($i->{key} eq $key) {
+            for (sort { $a cmp $b } keys %$i) {
+              print sprintf('%s: %s', $_, $i->{$_}), "\n";
+            }
+            exit 1;
+          }
+        }
+        err sprintf '"%s"キーが存在しません.', $key;
+      }
+      for (@$data) {
+        if ($_->{key} eq $key) {
+          print $_->{$item};
+          exit 0;
+        }
+      }
+      err sprintf '"%s"キーが存在しません', $key;
+    }
+  },
+  help => {
+    usage => '',
+    desc => 'コマンドのヘルプを出力する',
+    command => sub {
+      print sprintf(
+        '%s%s'.($cmd->{$_}->{desc} ? ': %s' : '%s')."\n",
+        $_,
+        ' '.$cmd->{$_}->{usage},
+        $cmd->{$_}->{desc} || '',
+      ) for sort { $a cmp $b } keys %$cmd
+    }
+  }
+};
+
+sub cmdexec {
+  my $k = shift @ARGV;
+  $k or die 'コマンドを入力してください';
+  $cmd->{$k} or err sprintf('%sというコマンドは存在しません', $k);
+  $cmd->{$k}->{command}->();
+}
+
+cmdexec
